@@ -12,10 +12,35 @@ module Capistrano::Deploylock
       _cset(:deploy_lock_remote_log_path) {"#{deploy_lock_dirname}/#{deploy_lock_basename}.log" }
       _cset(:deploy_lock_file_local_path) {"./public/system/#{deploy_lock_basename}.yml" }
 
+      def remote_file_exists?(full_path)
+        'true' ==  capture("if [ -e #{full_path} ]; then echo 'true'; fi").strip
+      end
+
+      def lock_force_end(with_log=false)
+        if remote_file_exists?(deploy_lock_remote_path)
+          puts '[SKIP] ロックファイルを削除します'
+          lock_end_log if with_log
+          run "rm -f #{deploy_lock_remote_path}"
+        end
+      end
+
+      def lock_start_log
+        run "echo [started], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_file_remote_log_path}"
+      end
+
+      def lock_end_log
+        run "echo [ended], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_file_remote_log_path}"
+      end
+
+      def git_config_user_name
+        `git config --get user.name`
+      end
+
       namespace :deploy do
         namespace :lock do
+            desc 'デプロイロックを確認する'
           task :start, roles: :web do
-            on_rollback { run "rm -f #{deploy_lock_file_remote_path}" }
+            on_rollback { run "rm -f #{deploy_lock_remote_path}" }
             require 'erb'
             puts "\n**** [DEPLOY LOCK] ****"
             puts "24時間後まであなたの名前を元に他人のデプロイをロックします。"
@@ -31,24 +56,25 @@ module Capistrano::Deploylock
             puts "  expired_at   : #{expired_at}\n\n"
   
             erb = ERB.new(File.read("#{deploy_lock_file_local_path}.erb")).result(binding)
-              put erb, "#{deploy_lock_file_remote_path}", mode: 0644
+              put erb, "#{deploy_lock_remote_path}", mode: 0644
               lock_start_log
             end
 
+            desc 'デプロイロックを確認する'
             task :end, roles: :web do
               lock_force_end(true)
             end
 
             desc 'デプロイロックを確認する'
             task :check, roles: :web do
-              unless remote_file_exists?(deploy_lock_file_remote_path)
+              unless remote_file_exists?(deploy_lock_remote_path)
                 puts '[SKIP] ロックファイルがありません.'
                 next
               end
 
               FileUtils.rm deploy_lock_file_local_path, force: true
 
-              get deploy_lock_file_remote_path, deploy_lock_file_local_path
+              get deploy_lock_remote_path, deploy_lock_file_local_path
               lock = YAML.load_file deploy_lock_file_local_path
 
               if Time.now > lock["expired_at"]
@@ -73,35 +99,11 @@ module Capistrano::Deploylock
               FileUtils.rm './public/system/deploy_lock.yml', force: true
               run "hostname; exit 1"
             end
-
-
         end
       end
     end
 
-    def remote_file_exists?(full_path)
-        'true' ==  capture("if [ -e #{full_path} ]; then echo 'true'; fi").strip
-    end
 
-    def lock_force_end(with_log=false)
-      if remote_file_exists?(deploy_lock_file_remote_path)
-        puts '[SKIP] ロックファイルを削除します'
-        lock_end_log if with_log
-        run "rm -f #{deploy_lock_file_remote_path}"
-      end
-    end
-
-    def lock_start_log
-        run "echo [started], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_file_remote_log_path}"
-    end
-
-    def lock_end_log
-        run "echo [ended], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_file_remote_log_path}"
-    end
-
-    def git_config_user_name
-        `git config --get user.name`
-    end
   end
 end
 
