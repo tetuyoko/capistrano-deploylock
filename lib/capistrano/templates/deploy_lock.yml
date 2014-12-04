@@ -1,0 +1,2 @@
+user: <%= user %>
+expired_at: <%= expired_at %>

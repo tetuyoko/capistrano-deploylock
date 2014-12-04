@@ -2,31 +2,105 @@ require "capistrano/deploylock/version"
 require 'capistrano'
 
 module Capistrano::Deploylock
+
   def self.load_into(configuration)
     configuration.load do
-      _cset(:maintenance_dirname) { "#{shared_path}/system" }
-      _cset :maintenance_basename, "maintenance"
-      _cset(:maintenance_template_path) { File.join(File.dirname(__FILE__), "templates", "maintenance.html.erb") }
+      _cset :deploy_lock_basename, "deploy_lock"
+      _cset(:deploy_lock_dirname) { "#{shared_path}/system" }
+      _cset(:deploy_lock_template_path) { File.join(File.dirname(__FILE__), "templates", "deploy_lock.yml") }
+      _cset(:deploy_lock_remote_path) { "#{deploy_lock_dirname}/#{deploy_lock_basename}.yml" }
+      _cset(:deploy_lock_remote_log_path) {"#{deploy_lock_dirname}/#{deploy_lock_basename}.log" }
+      _cset(:deploy_lock_file_local_path) {"./public/system/#{deploy_lock_basename}.yml" }
 
       namespace :deploy do
-        namespace :web do
-          desc 'hoge'
-          task :disablehoge, :roles => :web, :except => { :no_release => true } do
+        namespace :lock do
+          task :start, roles: :web do
+            on_rollback { run "rm -f #{deploy_lock_file_remote_path}" }
             require 'erb'
-            on_rollback { run "rm -f #{maintenance_dirname}/#{maintenance_basename}.html" }
+            puts "\n**** [DEPLOY LOCK] ****"
+            puts "24時間後まであなたの名前を元に他人のデプロイをロックします。"
+            puts "この操作は下記のコマンドで取り消しできます。"
+            puts "bundle exedc cap $STAGENAME deploy:lock:end"
 
-            template = File.read(maintenance_template_path)
-            result = ERB.new(template).result(binding)
+            day = 1
+            expired_at = Time.now + (day * (60 * 60 * 24))
 
-            put result, "#{maintenance_dirname}/#{maintenance_basename}.html", :mode => 0644
-          end
+            user = `users`.chomp
+            puts "\n**** [LOCKED] #{rails_env}はロックされ、有効期限内が設定されました. **** "
+            puts "\n  locked_user  : #{user}"
+            puts "  expired_at   : #{expired_at}\n\n"
+  
+            erb = ERB.new(File.read("#{deploy_lock_file_local_path}.erb")).result(binding)
+              put erb, "#{deploy_lock_file_remote_path}", mode: 0644
+              lock_start_log
+            end
 
-          desc 'hiu'
-          task :enablehoge, :roles => :web, :except => { :no_release => true } do
-            run "rm -f #{maintenance_dirname}/#{maintenance_basename}.html"
-          end
+            task :end, roles: :web do
+              lock_force_end(true)
+            end
+
+            desc 'デプロイロックを確認する'
+            task :check, roles: :web do
+              unless remote_file_exists?(deploy_lock_file_remote_path)
+                puts '[SKIP] ロックファイルがありません.'
+                next
+              end
+
+              FileUtils.rm deploy_lock_file_local_path, force: true
+
+              get deploy_lock_file_remote_path, deploy_lock_file_local_path
+              lock = YAML.load_file deploy_lock_file_local_path
+
+              if Time.now > lock["expired_at"]
+                 puts '[SKIP] ロックファイルの設定期限が過ぎています.'
+                 lock_force_end(false)
+                 next
+              end
+
+              current_user = git_config_user_name.chomp
+              if lock["user"] == current_user
+                puts '[SKIP] あなたのロックファイルです.'
+                next
+              end
+
+              puts "\n**** [LOCKED] #{rails_env}はロックされ、有効期限内です. **** "
+              puts "\n  locked_user  : #{lock["user"]}"
+              puts "  expired_at   : #{lock["expired_at"]}\n\n"
+
+              puts "ロックは下記のコマンドで取り消しできます。"
+              puts "bundle exedc cap $STAGENAME deploy:lock:end"
+
+              FileUtils.rm './public/system/deploy_lock.yml', force: true
+              run "hostname; exit 1"
+            end
+
+
         end
       end
+    end
+
+    def remote_file_exists?(full_path)
+        'true' ==  capture("if [ -e #{full_path} ]; then echo 'true'; fi").strip
+    end
+
+    def lock_force_end(with_log=false)
+      if remote_file_exists?(deploy_lock_file_remote_path)
+        puts '[SKIP] ロックファイルを削除します'
+        lock_end_log if with_log
+        run "rm -f #{deploy_lock_file_remote_path}"
+      end
+    end
+
+    def lock_start_log
+        run "echo [started], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_file_remote_log_path}"
+    end
+
+    def lock_end_log
+        run "echo [ended], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_file_remote_log_path}"
+    end
+
+    def git_config_user_name
+        `git config --get user.name`
     end
   end
 end
