@@ -25,11 +25,11 @@ module Capistrano::Deploylock
       end
 
       def lock_start_log
-        run "echo [started], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_file_remote_log_path}"
+        run "echo [started], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_remote_log_path}"
       end
 
       def lock_end_log
-        run "echo [ended], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_file_remote_log_path}"
+        run "echo [ended], #{Time.now}, #{git_config_user_name} >> #{deploy_lock_remote_log_path}"
       end
 
       def git_config_user_name
@@ -55,7 +55,7 @@ module Capistrano::Deploylock
             puts "\n  locked_user  : #{user}"
             puts "  expired_at   : #{expired_at}\n\n"
   
-            erb = ERB.new(File.read("#{deploy_lock_file_local_path}.erb")).result(binding)
+            erb = ERB.new(File.read("#{deploy_lock_template_path}.erb")).result(binding)
               put erb, "#{deploy_lock_remote_path}", mode: 0644
               lock_start_log
             end
@@ -73,6 +73,7 @@ module Capistrano::Deploylock
               end
 
               FileUtils.rm deploy_lock_file_local_path, force: true
+              FileUtils.mkdir_p './public/system'
 
               get deploy_lock_remote_path, deploy_lock_file_local_path
               lock = YAML.load_file deploy_lock_file_local_path
