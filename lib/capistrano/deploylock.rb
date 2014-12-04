@@ -21,7 +21,7 @@ module Capistrano::Deploylock
             put result, "#{maintenance_dirname}/#{maintenance_basename}.html", :mode => 0644
           end
 
-          desk 'hiu'
+          desc 'hiu'
           task :enablehoge, :roles => :web, :except => { :no_release => true } do
             run "rm -f #{maintenance_dirname}/#{maintenance_basename}.html"
           end
