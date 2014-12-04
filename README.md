@@ -20,7 +20,14 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+    add config/deploy.rb
+
+    require 'capistrano/deploylock'
+
+~~~
+before "deploy:lock:start", "deploy:lock:check"
+before "deploy", "deploy:lock:start"
+~~~
 
 ## Contributing
 
