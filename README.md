@@ -1,5 +1,7 @@
 # Capistrano::Deploylock
 
+[![Gem Version](https://badge.fury.io/rb/capistrano-deploylock.svg)](http://badge.fury.io/rb/capistrano-deploylock)
+
 デプロイした環境を一日だけロックする
 
 ## Installation
