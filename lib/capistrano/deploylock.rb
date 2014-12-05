@@ -36,9 +36,13 @@ module Capistrano::Deploylock
         `git config --get user.name`
       end
 
+      def remove_local_file
+        FileUtils.rm deploy_lock_file_local_path, force: true
+      end
+
       namespace :deploy do
         namespace :lock do
-            desc 'デプロイロックを確認する'
+          desc 'デプロイロックを確認する'
           task :start, roles: :web do
             on_rollback { run "rm -f #{deploy_lock_remote_path}" }
             require 'erb'
@@ -54,57 +58,57 @@ module Capistrano::Deploylock
             puts "\n**** [LOCKED] #{rails_env}はロックされ、有効期限内が設定されました. **** "
             puts "\n  locked_user  : #{user}"
             puts "  expired_at   : #{expired_at}\n\n"
-  
+
             erb = ERB.new(File.read("#{deploy_lock_template_path}.erb")).result(binding)
-              put erb, "#{deploy_lock_remote_path}", mode: 0644
-              lock_start_log
+            put erb, "#{deploy_lock_remote_path}", mode: 0644
+            lock_start_log
+          end
+
+          desc 'デプロイロックを解除する'
+          task :end, roles: :web do
+            lock_force_end(true)
+          end
+
+          desc 'デプロイロックを設定する'
+          task :check, roles: :web do
+            unless remote_file_exists?(deploy_lock_remote_path)
+              puts '[SKIP] ロックファイルがありません.'
+              next
             end
 
-            desc 'デプロイロックを確認する'
-            task :end, roles: :web do
-              lock_force_end(true)
+            FileUtils.rm deploy_lock_file_local_path, force: true
+            FileUtils.mkdir_p './public/system'
+
+            get deploy_lock_remote_path, deploy_lock_file_local_path
+            lock = YAML.load_file deploy_lock_file_local_path
+
+            if Time.now > lock["expired_at"]
+              puts '[SKIP] ロックファイルの設定期限が過ぎています.'
+              remove_local_file
+              lock_force_end(false)
+              next
             end
 
-            desc 'デプロイロックを確認する'
-            task :check, roles: :web do
-              unless remote_file_exists?(deploy_lock_remote_path)
-                puts '[SKIP] ロックファイルがありません.'
-                next
-              end
-
-              FileUtils.rm deploy_lock_file_local_path, force: true
-              FileUtils.mkdir_p './public/system'
-
-              get deploy_lock_remote_path, deploy_lock_file_local_path
-              lock = YAML.load_file deploy_lock_file_local_path
-
-              if Time.now > lock["expired_at"]
-                 puts '[SKIP] ロックファイルの設定期限が過ぎています.'
-                 lock_force_end(false)
-                 next
-              end
-
-              current_user = git_config_user_name.chomp
-              if lock["user"] == current_user
-                puts '[SKIP] あなたのロックファイルです.'
-                next
-              end
-
-              puts "\n**** [LOCKED] #{rails_env}はロックされ、有効期限内です. **** "
-              puts "\n  locked_user  : #{lock["user"]}"
-              puts "  expired_at   : #{lock["expired_at"]}\n\n"
-
-              puts "ロックは下記のコマンドで取り消しできます。"
-              puts "bundle exedc cap $STAGENAME deploy:lock:end"
-
-              FileUtils.rm './public/system/deploy_lock.yml', force: true
-              run "hostname; exit 1"
+            current_user = git_config_user_name.chomp
+            if lock["user"] == current_user
+              puts '[SKIP] あなたのロックファイルです.'
+              remove_local_file
+              next
             end
+
+            puts "\n**** [LOCKED] #{rails_env}はロックされ、有効期限内です. **** "
+            puts "\n  locked_user  : #{lock["user"]}"
+            puts "  expired_at   : #{lock["expired_at"]}\n\n"
+
+            puts "ロックは下記のコマンドで取り消しできます。"
+            puts "bundle exedc cap $STAGENAME deploy:lock:end"
+
+            remove_local_file
+            run "hostname; exit 1"
+          end
         end
       end
     end
-
-
   end
 end
 
