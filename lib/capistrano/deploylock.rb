@@ -51,6 +51,21 @@ module Capistrano::Deploylock
             puts "この操作は下記のコマンドで取り消しできます。"
             puts "bundle exedc cap $STAGENAME deploy:lock:end"
 
+            #      対話用
+            #      print "\n今日から何日間ロックしますか? [1-10/n]: "
+            #      STDOUT.flush
+            #      ans= STDIN.gets.chomp
+            #      if ["", 'n'].include? ans
+            #        puts "[SKIPPED] デプロイロックをスキップしました。"
+            #        exit
+            #      end
+            #  
+            #      day = ans.to_i
+            #      unless (1..10).include?(day)
+            #        puts "[FAILED] days must set [1-10/n]"
+            #        exit
+            #      end
+
             day = 1
             expired_at = Time.now + (day * (60 * 60 * 24))
 
