@@ -37,7 +37,6 @@ before "deploy", "deploy:lock:start"
 1. 要はlockファイルさえなければあらゆる環境に自由にデプロイしたい. lockファイル作っとかないほうが悪い状態が効率が良い
 
 ## 機能仕様
-1. staging専用
 1. `` cap deploy`` 後、 自分以外のユーザが24hデプロイできないようになる
 1. `` cap deploy:lock:end`` で取り消し可能
 
