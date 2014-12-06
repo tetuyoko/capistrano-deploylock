@@ -41,9 +41,9 @@ before "deploy", "deploy:lock:start"
 1. but `` cap deploy:lock:end`` command abort lock.
 1. when deploy, if lockfile exits, 
 
-　* it is maked by yourself,  `` expired_at`` has update to 24h after by now.
-　* it is not maked by yourself, `` expired_at`` not over current time, you can deploy.
-　* it is not maked by yourself, `` expired_at`` over current time, you can deploy.
+* it is maked by yourself,  `` expired_at`` has update to 24h after by now.
+* it is not maked by yourself, `` expired_at`` not over current time, you can deploy.
+* it is not maked by yourself, `` expired_at`` over current time, you can deploy.
 
 
 ## cmd 
