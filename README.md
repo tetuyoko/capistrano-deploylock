@@ -2,7 +2,7 @@
 
 [![Gem Version](https://badge.fury.io/rb/capistrano-deploylock.svg)](http://badge.fury.io/rb/capistrano-deploylock)
 
-デプロイした環境を一日だけロックする
+lock set to deployed server for 1 day.
 
 ## Installation
 
@@ -31,41 +31,36 @@ before "deploy:lock:start", "deploy:lock:check"
 before "deploy", "deploy:lock:start"
 ~~~
 
-## なぜ作ったのか
-1. デプロイしていいか聞きまわるの面倒くさい　とはいえ一人ずつサーバ作って管理するというのも面倒
-1. デプロイしていいかその環境自体に聞けばｲｲｼﾞｬﾝという発想
-1. 要はlockファイルさえなければあらゆる環境に自由にデプロイしたい. lockファイル作っとかないほうが悪い状態が効率が良い
+## Why
+1. to ask people 'Can I deploy this server?', is almost Time-consuming.
+1. not ask peoble, but sever.
+1. no lockfile sets, you can always deploy. deployment runs quickly.
 
-## 機能仕様
-1. `` cap deploy`` 後、 自分以外のユーザが24hデプロイできないようになる
-1. `` cap deploy:lock:end`` で取り消し可能
+## Feauture
+1. after you run `` cap deploy`` command, lockfile has set to deployed server, then anyone cannot deploy 24h except you.
+1. but `` cap deploy:lock:end`` command abort lock.
+1. when deploy, if lockfile exits, 
 
-## 詳細仕様
-1. `` cap deploy``  時にdeploy_lock.ymlファイルをshared/systemに作成(`` cap deploy:lock:start`` フック)
-1. `` cap deploy:lock:start `` 時にdeploy_lock.ymlファイルがshared/systemにないか確認(`` cap deploy:lock:start`` フック)
-1. lockファイルが存在する場合
-　* 自分が作ったやつなら無視して、`` expired_at`` を今から24h後に更新
-　* 他人が作ったやつで`` expired_at > Time.now　`` ならロック
-
-* deploy_lock.ymlにはデプロイしたuser名と, 現在時間の24時間後が、expired_at時間として入る
+　* it is maked by yourself,  `` expired_at`` has update to 24h after by now.
+　* it is not maked by yourself, `` expired_at`` not over current time, you can deploy.
+　* it is not maked by yourself, `` expired_at`` over current time, you can deploy.
 
 
 ## cmd 
 
-
-* ロック開始
+* lock start
 
 ~~~
  % bundle exec cap $STAGE  deploy:lock:start
 ~~~
 
-* ロック終了
+* lock end
 
 ~~~
  % bundle exec cap $STAGE  deploy:lock:end
 ~~~
 
-* ロック確認
+* lock check
 
 ~~~
  % bundle exec cap $STAGE  deploy:lock:check
