@@ -1,6 +1,8 @@
 # Capistrano::Deploylock
 
-[![Gem Version](https://badge.fury.io/rb/capistrano-deploylock.svg)](http://badge.fury.io/rb/capistrano-deploylock)
+[![Gem Version](https://badge.fury.io/rb/capistrano-deploylock.svg?style=flat)](http://badge.fury.io/rb/capistrano-deploylock)
+[![Code Climate](https://codeclimate.com/github/tetuyoko/capistrano-deploylock/badges/gpa.svg?style=flat)](https://codeclimate.com/github/tetuyoko/capistrano-deploylock)
+[![Dependency Status](https://gemnasium.com/tetuyoko/capistrano-deploylock.svg?style=flat)](https://gemnasium.com/tetuyoko/capistrano-deploylock)
 
 lock set to deployed server for 1 day.
 
