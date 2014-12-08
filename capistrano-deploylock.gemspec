@@ -8,15 +8,9 @@ Gem::Specification.new do |spec|
   spec.version       = Capistrano::Deploylock::VERSION
   spec.authors       = ["tetuyoko"]
   spec.email         = ["tyokoyama53@gmail.com"]
-<<<<<<< HEAD
   spec.summary       = %q{lock set to deployed server for 1 day.}
   spec.description   = %q{lock set to deployed server for 1 day.}
-  spec.homepage      = "https://github.com/tetuyoko/developmentkit"
-=======
-  spec.summary       = %q{capistrano deploy lock}
-  spec.description   = %q{capistrano deploy lock}
   spec.homepage      = "https://github.com/tetuyoko/capistrano-deploylock"
->>>>>>> update
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
