@@ -69,7 +69,7 @@ module Capistrano::Deploylock
             day = 1
             expired_at = Time.now + (day * (60 * 60 * 24))
 
-            user = `users`.chomp
+            user = git_config_user_name
             puts "\n**** [LOCKED] #{rails_env}はロックされ、有効期限内が設定されました. **** "
             puts "\n  locked_user  : #{user}"
             puts "  expired_at   : #{expired_at}\n\n"
